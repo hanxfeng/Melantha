@@ -1,19 +1,6 @@
 from llama_cpp import Llama
 from dataclasses import dataclass
 
-
-@dataclass
-class AIModelConfig:
-    # 模型地址
-    model_path: str = r"E:\A_小玫\python\LLM\models\qwen1_5-4b-chat-q8_0.gguf"
-    # 上下文长度
-    n_ctx: int = 2048
-    # gpu 使用情况，-1 为全部迁移至 gpu
-    n_gpu_layers: int = -1
-    # cpu 线程数
-    n_threads: int = 8
-
-
 @dataclass
 class GenerationConfig:
     # 最大输出 token
@@ -25,19 +12,7 @@ class GenerationConfig:
 
 class AiAssistant:
 
-    def __init__(self, model_cfg: AIModelConfig = None):
-        self.model_cfg = model_cfg or AIModelConfig()
-
-        # llama 配置
-        self.llm = Llama(
-            model_path=self.model_cfg.model_path,
-            n_ctx=self.model_cfg.n_ctx,
-            n_threads=self.model_cfg.n_threads,
-            n_gpu_layers=self.model_cfg.n_gpu_layers,
-            verbose=False
-        )
-
-    def call_ai(self, message: str, history_chat: str, gen_cfg: GenerationConfig = None) -> str:
+    def call_ai(self, message: str, history_chat: str, llm,  gen_cfg: GenerationConfig = None) -> str:
         gen_cfg = gen_cfg or GenerationConfig()
 
         with open(r"E:\A_小玫\python\LLM\config\人设.txt", "r", encoding='utf-8') as file:
@@ -81,14 +56,14 @@ class AiAssistant:
         )
 
         # 进行推理
-        response = self.llm.create_chat_completion(
+        response = llm.create_chat_completion(
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": f"{message}"}
             ],
-            max_tokens=256,
-            temperature=0.7,
-            top_p=0.9,  # 核采样
+            max_tokens=gen_cfg.max_tokens,
+            temperature=gen_cfg.temperature,
+            top_p=gen_cfg.top_p,
             stop=["<|im_end|>"],
         )
 

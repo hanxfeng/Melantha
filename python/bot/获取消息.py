@@ -1,13 +1,17 @@
 import asyncio
 import json
 import websockets
-import os
+import time
 from datetime import datetime
 from LLM.call_ai import AiAssistant
 from operae_json import read_latest_json,save_message
+from LLM.get_image import get_image
+from LLM.get_llm import get_llm
 
 
-async def get_message(message_data, websocket):
+async def get_message(message_data, websocket, llm):
+    # 判断是否应该回复
+
     # 解析消息
     message = json.loads(message_data)
     print(f"message:{message}")
@@ -24,15 +28,32 @@ async def get_message(message_data, websocket):
                 push_message = dict.get("raw_message")
                 history_chat = read_latest_json()
 
-                print(f"收到消息：{push_message}，开始推理")
+                print(f"收到消息：”{push_message}“，开始推理")
 
+                # 获取 ai 回复
                 ai_assistant = AiAssistant()
-                reply_message = ai_assistant.call_ai(message=push_message, history_chat=history_chat)
+                reply_message = ai_assistant.call_ai(message=push_message, history_chat=history_chat, llm=llm)
 
+                # 保存 ai 回复
                 save_message(reply_message, ai=True)
+                reply_message = {"type": "text", "data": {"text": f"{reply_message}"}}
 
-                # 发送回复
+                # 选择图片
+                image_path = get_image(history_chat, llm)
+
+                # 根据图片类型确定发送方式
+                if image_path:
+                    reply_image = {"type": "image", "data": {"file": image_path}}
+                else:
+                    reply_image = False
+
+                # 分别发送回复
                 await send_group_message(websocket, group_id, reply_message)
+
+                # 如果存在图片消息则发送
+                if reply_image:
+                    time.sleep(0.1)
+                    await send_group_message(websocket, group_id, reply_image)
 
         """
         # 处理群聊消息
@@ -66,7 +87,7 @@ async def send_group_message(websocket, group_id, message):
     }))
 
 
-async def listen_to_napcat():
+async def listen_to_napcat(llm):
     token = "QSGebDrUedfsdaKY"
     uri = f"ws://127.0.0.1:3001?access_token={token}"
     print("操作已开始")
@@ -74,11 +95,12 @@ async def listen_to_napcat():
     async for websocket in websockets.connect(uri):
         try:
             async for message in websocket:
-                await get_message(message, websocket)
+                await get_message(message, websocket, llm)
         except websockets.ConnectionClosed:
             print("连接已断开，正在尝试重新连接...")
             continue
 
 
 if __name__ == "__main__":
-    asyncio.run(listen_to_napcat())
+    llm = get_llm()
+    asyncio.run(listen_to_napcat(llm))
