@@ -7,6 +7,7 @@ from LLM.call_ai import AiAssistant
 from operae_json import read_latest_json,save_message
 from LLM.get_image import get_image
 from LLM.get_llm import get_llm
+from LLM.check_chat_unfinished_and_should_join import check_chat_unfinished_and_should_join
 
 
 async def get_message(message_data, websocket, llm):
@@ -24,9 +25,20 @@ async def get_message(message_data, websocket, llm):
             group_id = message.get("group_id")
             print(f"群号为：{group_id}")
             if group_id == 937129319:
+                # 保存聊天记录
                 dict = save_message(message)
+
+                # 获取当前消息
                 push_message = dict.get("raw_message")
+
+                # 获取历史消息
                 history_chat = read_latest_json()
+
+                # 判断是否要回复消息
+                flag = check_chat_unfinished_and_should_join(history_chat, llm)
+
+                if not flag:
+                    return ""
 
                 print(f"收到消息：”{push_message}“，开始推理")
 
