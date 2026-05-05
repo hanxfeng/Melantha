@@ -3,10 +3,10 @@ from llama_cpp import Llama
 # ========== 配置区域 ==========
 # 根据你下载的模型文件，修改为实际路径
 # 推荐：DeepSeek-R1-Distill-Qwen-1.5B-Q4_K_M.gguf 或 7B-Q3_K_S.gguf
-model_path = r"E:\A_小玫\python\LLM\models\qwen1_5-4b-chat-q8_0.gguf"
+model_path = r"E:\A_小玫\python\LLM\models\Llama-3.2-1B-Instruct-Q6_K.gguf"
 
 # 上下文长度：1.5B 可用 4096，7B 建议从 2048 开始测试
-n_ctx = 2048
+n_ctx = 2048*40
 
 # GPU 加速：-1 表示全部层加载到 GPU（显存足够时）
 n_gpu_layers = -1
@@ -17,7 +17,7 @@ n_threads = 8
 
 llm = Llama(
     model_path=model_path,
-    n_ctx=n_ctx,
+    n_ctx=int(n_ctx),
     n_threads=n_threads,
     n_gpu_layers=n_gpu_layers,
     verbose=False,
